@@ -2,22 +2,15 @@ import React, { useState, useMemo } from 'react';
 import { Category, QuestionCardData } from './types';
 import { INITIAL_QUESTIONS } from './constants';
 import QuestionCard from './components/QuestionCard';
-import AskGemini from './components/AskGemini';
+import QuestionDetail from './components/QuestionDetail';
 import { Compass, Menu, Search, X } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [questions, setQuestions] = useState<QuestionCardData[]>(INITIAL_QUESTIONS);
+  const [questions] = useState<QuestionCardData[]>(INITIAL_QUESTIONS);
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Handle new question from AI
-  const handleNewQuestion = (newQuestion: QuestionCardData) => {
-    setQuestions(prev => [newQuestion, ...prev]);
-    // Optionally switch view to show the new question
-    setSelectedCategory('All');
-    setSearchQuery(''); 
-  };
+  const [selectedQuestion, setSelectedQuestion] = useState<QuestionCardData | null>(null);
 
   // Filter logic
   const filteredQuestions = useMemo(() => {
@@ -29,6 +22,15 @@ const App: React.FC = () => {
     });
   }, [questions, selectedCategory, searchQuery]);
 
+  const handleBackToHome = () => {
+    setSelectedQuestion(null);
+  };
+
+  // If a question is selected, show the detail view
+  if (selectedQuestion) {
+    return <QuestionDetail data={selectedQuestion} onBack={handleBackToHome} />;
+  }
+
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-red-200 selection:text-red-900 flex flex-col">
       {/* Background Pattern */}
@@ -39,7 +41,14 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             {/* Logo */}
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => {setSelectedCategory('All'); window.scrollTo(0,0);}}>
+            <div 
+              className="flex items-center gap-3 cursor-pointer" 
+              onClick={() => {
+                setSelectedCategory('All'); 
+                setSearchQuery('');
+                window.scrollTo(0,0);
+              }}
+            >
               <div className="bg-red-800 text-white p-2 rounded-lg">
                 <Compass size={28} strokeWidth={1.5} />
               </div>
@@ -85,16 +94,40 @@ const App: React.FC = () => {
             We've collected the essential wisdom for your journey East.
           </p>
 
-          {/* AI Search Bar */}
-          <AskGemini onNewQuestion={handleNewQuestion} />
+          {/* Styled Search/Filter Bar (Replaces AskGemini) */}
+          <div className="w-full max-w-2xl mx-auto my-12 relative z-10">
+            <div className="bg-white rounded-2xl shadow-xl border border-stone-200 p-2 flex items-center gap-2 transition-shadow hover:shadow-2xl">
+              <div className="pl-4 text-red-800">
+                <Search size={24} />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search guide (e.g. 'WeChat', 'Train', 'Visa')..."
+                className="flex-1 p-4 text-lg text-stone-800 placeholder-stone-400 focus:outline-none bg-transparent"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="p-3 mr-1 text-stone-400 hover:text-red-800 hover:bg-stone-100 rounded-xl transition-all"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
+            <p className="text-center text-stone-500 text-sm mt-3 font-medium">
+               Search through {questions.length} curated travel tips
+            </p>
+          </div>
         </section>
 
         {/* Filters & Content */}
         <div className="mt-8">
           
           {/* Category Tabs */}
-          <div className="flex flex-wrap justify-center gap-3 mb-10">
-            {['All', ...Object.values(Category)].map((cat) => (
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
+            {['All', ...Object.values(Category)].filter(c => c !== Category.AI_GENERATED).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat as Category | 'All')}
@@ -110,32 +143,22 @@ const App: React.FC = () => {
             ))}
           </div>
 
-          {/* Search Local Filter */}
-          <div className="max-w-md mx-auto mb-12 relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400 group-focus-within:text-red-700 transition-colors">
-              <Search size={20} />
-            </div>
-            <input 
-              type="text" 
-              placeholder="Filter existing questions..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white border border-stone-200 rounded-xl focus:ring-2 focus:ring-red-100 focus:border-red-300 focus:outline-none transition-all shadow-sm"
-            />
-          </div>
-
           {/* Questions Grid */}
           {filteredQuestions.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 pb-20">
               {filteredQuestions.map(q => (
-                <QuestionCard key={q.id} data={q} />
+                <QuestionCard 
+                  key={q.id} 
+                  data={q} 
+                  onClick={setSelectedQuestion} 
+                />
               ))}
             </div>
           ) : (
             <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-stone-300">
               <div className="text-6xl mb-4">🏮</div>
               <h3 className="text-xl font-bold text-stone-900 mb-2">No answers found</h3>
-              <p className="text-stone-500">Try asking our AI guide above!</p>
+              <p className="text-stone-500">Try a different keyword.</p>
             </div>
           )}
 
@@ -152,7 +175,7 @@ const App: React.FC = () => {
             </div>
             <p className="text-sm opacity-60">
               Simplifying travel to China for everyone. <br/>
-              Built with React, Tailwind & Gemini.
+              Built with React & Tailwind.
             </p>
           </div>
           <div>

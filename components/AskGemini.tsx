@@ -18,12 +18,12 @@ const AskGemini: React.FC<AskGeminiProps> = ({ onNewQuestion }) => {
     setIsLoading(true);
     try {
       const answer = await askTravelQuestion(input);
+      // Fixed: Removed 'isExpanded' property as it is not defined in QuestionCardData type
       const newCard: QuestionCardData = {
         id: Date.now().toString(),
         category: Category.AI_GENERATED,
         question: input,
         answer: answer,
-        isExpanded: true,
       };
       onNewQuestion(newCard);
       setInput('');

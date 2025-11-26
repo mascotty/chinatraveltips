@@ -11,9 +11,10 @@ export enum Category {
 export interface QuestionCardData {
   id: string;
   question: string;
-  answer: string;
+  answer: string; // Short preview text
+  details?: string; // Full rich text content
+  images?: string[]; // Array of image URLs
   category: Category;
-  isExpanded?: boolean;
 }
 
 export interface AskAIResponse {
